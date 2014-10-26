@@ -122,7 +122,7 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             return ((point1.Position.Y < hand.Position.Y));
         }
 
-        public bool move24(Joint shoulder, Joint elbow, Joint hand) 
+        private bool move24(Joint shoulder, Joint elbow, Joint hand) 
         {
             bool posXsh = (shoulder.Position.X > hand.Position.X);
             bool posXeh = ((elbow.Position.X < hand.Position.X));
