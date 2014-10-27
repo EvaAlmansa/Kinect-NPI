@@ -112,10 +112,10 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             minShoulderY = shoulder.Position.Y + maxShoulderY * (-1.0);
         }
 
-        private bool moveHand(Joint shoulder, Joint hand) 
+        private bool moveHand(Joint shoulder, Joint wrist) 
         {
-            bool posY = (hand.Position.Y <= maxShoulderY) && (hand.Position.Y >= minShoulderY);
-            bool posX = (shoulder.Position.X > hand.Position.X);
+            bool posY = (wrist.Position.Y <= maxShoulderY) && (wrist.Position.Y >= minShoulderY);
+            bool posX = (shoulder.Position.X > wrist.Position.X);
             return (posY && posX);
         }
 
