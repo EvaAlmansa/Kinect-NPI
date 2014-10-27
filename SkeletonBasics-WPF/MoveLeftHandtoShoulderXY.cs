@@ -12,12 +12,11 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
     {
         private Skeleton skeletonControl;
 
-        const double errorShoulderElbow = 0.5;
-        const double errorElbowWrist = 1.0;
+        const double MINERROR = 0.5;
+        const double MAXERROR = 1.0;
 
-        private bool positionX;
-        private bool positionY;
-        private bool positionZ;
+        private double maxShoulderY;
+        private double minShoulderY;
 
         private bool correctPos;
 
@@ -25,26 +24,10 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
 
         public MoveLeftHandtoShoulderXY() 
         {
-            positionX = false;
-            positionY = false;
-            positionZ = false;
             correctPos = false;
             level = 0;
-        }
-
-        public bool posX() 
-        { 
-            return (positionX);
-        }
-
-        public bool posY()
-        {
-            return (positionY);
-        }
-
-        public bool posZ()
-        {
-            return (positionZ);
+            maxShoulderY = 0.0;
+            minShoulderY = 0.0;
         }
 
         public void resetLevel() 
@@ -57,7 +40,12 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
          */
         public int detectingSkeleton(Skeleton inSk) 
         {
+            bool positionX;
+            bool positionY;
+            bool positionZ;
+
             skeletonControl = inSk;
+            
 
             //Get the initial position of the skeleton
             Joint shoulder = skeletonControl.Joints[JointType.ShoulderLeft];
@@ -69,19 +57,20 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             {
                 case 0:
                     positionX = (rangeX(shoulder, elbow) && rangeX(elbow, wrist));
-                    positionY = (rangeY(shoulder, elbow, errorShoulderElbow) && (rangeY(elbow, wrist, errorElbowWrist)));
-                    positionZ = (rangeZ(shoulder, elbow, errorShoulderElbow) && (rangeZ(shoulder, wrist, errorElbowWrist)));
+                    positionY = (rangeY(shoulder, elbow, MINERROR) && (rangeY(elbow, wrist, MINERROR)));
+                    positionZ = (rangeZ(shoulder, elbow, MINERROR) && (rangeZ(shoulder, wrist, MINERROR)));
                     if (positionX && positionY && positionZ)
                     {
+                        calculateMinMaxPosY(shoulder, MINERROR);
                         level = 1;
                         //correctPos = true;
                     }
 
                     break;
                 case 1:
-                    positionY = (moveHand(elbow, hand)&&moveHand(shoulder, hand));
+                    positionY = moveHand(shoulder, wrist);
                     if (positionY)
-                    {
+                    { 
                         level = 2;
                         //correctPos = true;
                     }
@@ -90,7 +79,7 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
 
                     break;
                 case 2:
-                    correctPos = move24(shoulder, elbow, hand);
+                    correctPos = move24(shoulder, elbow, wrist);
                     if (!correctPos)
                         level = 0;
                     else
@@ -117,18 +106,26 @@ namespace Microsoft.Samples.Kinect.SkeletonBasics
             return ((point1.Position.Z <= point2.Position.Z + error) && (point1.Position.Z >= point2.Position.Z - error));
         }
 
-        private bool moveHand(Joint point1, Joint hand) 
+        private void calculateMinMaxPosY(Joint shoulder, double error) 
         {
-            return ((point1.Position.Y < hand.Position.Y));
+            maxShoulderY = shoulder.Position.Y + shoulder.Position.Y * error;
+            minShoulderY = shoulder.Position.Y + maxShoulderY * (-1.0);
         }
 
-        private bool move24(Joint shoulder, Joint elbow, Joint hand) 
+        private bool moveHand(Joint shoulder, Joint hand) 
         {
-            bool posXsh = (shoulder.Position.X > hand.Position.X);
-            bool posXeh = ((elbow.Position.X < hand.Position.X));
-            bool posY = ((shoulder.Position.Y <= hand.Position.Y) && (elbow.Position.Y <= hand.Position.Y));
+            bool posY = (hand.Position.Y <= maxShoulderY) && (hand.Position.Y >= minShoulderY);
+            bool posX = (shoulder.Position.X > hand.Position.X);
+            return (posY && posX);
+        }
+
+        private bool move24(Joint shoulder, Joint elbow, Joint wrist) 
+        {
+            bool posY = (wrist.Position.Y <= maxShoulderY) && (wrist.Position.Y >= minShoulderY);
+            bool posXsw = (shoulder.Position.X >= wrist.Position.X);
+            bool posXeh = ((elbow.Position.X <= wrist.Position.X));
             
-            return (posY && posXsh && posXeh);
+            return (posY && posXsw && posXeh);
         }
         
         public bool fitness24(JointType point1, JointType point2) 
